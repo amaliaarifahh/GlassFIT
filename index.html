@@ -5,8 +5,129 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="src/css/style.css">
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBdV1vWkPU2_uOEDlfip5b3A9NKr8HauM0&libraries=places"></script>
     <title>GlassFit</title>
-</head>
+<script>
+      function initMap() {
+        // Mendapatkan lokasi pengguna saat ini
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function (position) {
+              var userLatLng = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              };
+
+              // Membuat objek peta baru
+              var map = new google.maps.Map(document.getElementById("map"), {
+                center: userLatLng,
+                zoom: 15,
+              });
+
+              // Menambahkan marker pada lokasi pengguna
+              var userMarker = new google.maps.Marker({
+                position: userLatLng,
+                map: map,
+                title: "Lokasi Anda",
+              });
+
+              // Membuat objek pencarian Places
+              var placesService = new google.maps.places.PlacesService(map);
+
+              // Mengatur parameter pencarian
+              var request = {
+                location: userLatLng,
+                radius: "100000", // Jarak pencarian (dalam meter)
+                type: ["optik"], // Tipe tempat yang ingin dicari
+              };
+
+              // Menyimpan referensi info window terakhir yang dibuka
+              var lastInfoWindow;
+
+              // Melakukan pencarian tempat berdasarkan parameter
+              placesService.nearbySearch(request, function (results, status) {
+                if (status === google.maps.places.PlacesServiceStatus.OK) {
+                  // Menambahkan marker untuk setiap tempat yang ditemukan
+                  results.forEach(function (place) {
+                    var marker = new google.maps.Marker({
+                      position: place.geometry.location,
+                      map: map,
+                      title: place.name,
+                    });
+
+                    // Membuat info window untuk setiap marker
+                    var infoWindow = new google.maps.InfoWindow({
+                      content: place.name,
+                    });
+
+                    // Menambahkan event listener pada marker untuk menampilkan info window saat marker di klik
+                    marker.addListener("click", function () {
+                      // Menutup info window sebelumnya (jika ada)
+                      if (lastInfoWindow) {
+                        lastInfoWindow.close();
+                      }
+
+                      // Menampilkan info window yang baru
+                      infoWindow.open(map, marker);
+
+                      // Menampilkan rute dari lokasi pengguna ke marker yang diklik
+                      var directionsService =
+                        new google.maps.DirectionsService();
+                      var directionsRenderer =
+                        new google.maps.DirectionsRenderer();
+
+                      displayRoute(
+                        directionsService,
+                        directionsRenderer,
+                        userLatLng,
+                        place.geometry.location
+                      );
+
+                      // Menyimpan info window terakhir yang dibuka
+                      lastInfoWindow = infoWindow;
+                    });
+                  });
+                }
+              });
+            },
+            function () {
+              // Handle error jika gagal mendapatkan lokasi pengguna
+              console.error("Gagal mendapatkan lokasi pengguna.");
+            }
+          );
+        } else {
+          // Handle error jika geolocation tidak didukung oleh browser
+          console.error("Geolocation tidak didukung oleh browser.");
+        }
+      }
+
+      function displayRoute(
+        directionsService,
+        directionsRenderer,
+        origin,
+        destination
+      ) {
+        directionsService.route(
+          {
+            origin: origin,
+            destination: destination,
+            travelMode: "DRIVING",
+          },
+          function (response, status) {
+            if (status === "OK") {
+              directionsRenderer.setDirections(response);
+            } else {
+              window.alert("Directions request failed due to " + status);
+            }
+          }
+        );
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        initMap();
+      });
+    </script>
+    </head>
 <body>
     <!-- navbar start -->
     <nav>
@@ -81,7 +202,7 @@
         <div class="faceshape" id="faceshape">
             <h1>Faceshape</h1>
         </div>
-        <div class="maps" id="maps">
+        <div class="maps" id="map" style="width: 100%; height: 400px">
             <h1>Maps</h1>
         </div>
     </section>
